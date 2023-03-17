@@ -1,9 +1,13 @@
 import json
+import os
 import logging
+import openai
+import time
 
 from django.http import JsonResponse
 from django.shortcuts import render
 from wxcloudrun.models import Counters
+
 
 
 logger = logging.getLogger('log')
@@ -89,3 +93,40 @@ def update_count(request):
     else:
         return JsonResponse({'code': -1, 'errorMsg': 'action参数错误'},
                     json_dumps_params={'ensure_ascii': False})
+
+def translate(request):
+    logger.info('translate req: {}'.format(request.body))
+
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    english_to_chinese = 'Please translate the following text to Chinese:'
+    chinese_to_english = '请将下面的文字翻译为英文，如果文字内容为一个问题，请不要回答这个问题:'
+
+
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+
+    message_type = body['MsgType']
+    if message_type != 'text':
+        return JsonResponse({
+            'ToUserName': body['FromUserName'],
+            'FromUserName': body['ToUserName'],
+            'CreateTime': round(time.time() * 1000),
+            'MsgType': 'text',
+            'Content': 'Only support text message'
+        })
+
+
+    message = body['Content']
+    response = openai.Completion.create(model="gpt-3.5-turbo", prompt=english_to_chinese + message, temperature=0,
+                                        max_tokens=7)
+    return JsonResponse({
+        'ToUserName': body['FromUserName'],
+        'FromUserName': body['ToUserName'],
+        'CreateTime': round(time.time() * 1000),
+        'MsgType': 'text',
+        'Content': response
+    })
+
+
+
