@@ -94,7 +94,7 @@ def update_count(request):
         return JsonResponse({'code': -1, 'errorMsg': 'action参数错误'},
                     json_dumps_params={'ensure_ascii': False})
 
-def translate(request):
+def translate(request, _):
     logger.info('translate req: {}'.format(request.body))
 
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -106,6 +106,8 @@ def translate(request):
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
 
+
+    logger.info('translate request body: {}'.format(body))
     message_type = body['MsgType']
     if message_type != 'text':
         return JsonResponse({
@@ -120,6 +122,8 @@ def translate(request):
     message = body['Content']
     response = openai.Completion.create(model="gpt-3.5-turbo", prompt=english_to_chinese + message, temperature=0,
                                         max_tokens=7)
+
+    logger.info('translate open ai response: {}'.format(response))
     return JsonResponse({
         'ToUserName': body['FromUserName'],
         'FromUserName': body['ToUserName'],
